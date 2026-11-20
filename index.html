@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital@0;1&family=JetBrains+Mono&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #040408; overflow: hidden; }
-  svg { display: block; width: 100vw; height: 100vh; cursor: pointer; }
+  svg { display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer; }
   .serif  { font-family: 'Crimson Text', Georgia, serif; }
   .ital   { font-family: 'Crimson Text', Georgia, serif; font-style: italic; }
   .mono   { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
@@ -86,7 +86,7 @@
 
   <!-- EL ESPEJO: ilustración + llama -->
   <g id="mirror" opacity="0">
-    <image href="assets/ilustracion.jpg" x="414" y="329.5" width="471" height="471" clip-path="url(#clip)"/>
+    <image href="ilustracion.jpg" x="414" y="329.5" width="471" height="471" clip-path="url(#clip)"/>
     <ellipse id="flame" cx="642" cy="595" rx="80" ry="95" fill="url(#flameGrad)"
              style="mix-blend-mode: screen" opacity="0"/>
   </g>
@@ -354,6 +354,44 @@ setTimeout(function loop() {
   setTimeout(loop, 900 + Math.random() * 1600);
 }, 1500);
 addEventListener('resize', () => { live.slice().forEach(o => { o.win.remove(); }); live.length = 0; });
+</script>
+
+<!-- botón de pantalla completa (solo aparece en navegadores que lo permiten) -->
+<script>
+(function () {
+  var d = document, de = d.documentElement;
+  var req = de.requestFullscreen || de.webkitRequestFullscreen;
+  if (!req) return; // p. ej. Safari en iPhone: no hay pantalla completa para páginas
+  var MODE = "float", WHERE = "tr", LABEL = "icon";
+  var btn = d.createElement("button");
+  btn.type = "button"; btn.id = "fsbtn";
+  function isFs() { return !!(d.fullscreenElement || d.webkitFullscreenElement); }
+  function paint() {
+    var on = isFs();
+    btn.textContent = LABEL === "icon" ? (on ? "\u2715" : "\u26F6") : (on ? "\u2715 salir" : "\u26F6 pantalla completa");
+    btn.title = on ? "Salir de pantalla completa" : "Pantalla completa";
+    btn.setAttribute("aria-label", btn.title);
+  }
+  btn.addEventListener("click", function (e) {
+    e.stopPropagation(); e.preventDefault();
+    if (isFs()) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
+    else { var p = req.call(de); if (p && p.catch) p.catch(function () {}); }
+  });
+  ["pointerdown", "mousedown", "touchstart", "pointerup", "mouseup"].forEach(function (ev) {
+    btn.addEventListener(ev, function (e) { e.stopPropagation(); });
+  });
+  d.addEventListener("fullscreenchange", paint);
+  d.addEventListener("webkitfullscreenchange", paint);
+  var host = MODE === "group" ? d.querySelector(WHERE) : null;
+  if (host) host.appendChild(btn);
+  else {
+    btn.setAttribute("style", "position:fixed;top:10px;right:10px;z-index:2147483000;min-width:38px;height:38px;padding:0 10px;background:rgba(0,0,0,.55);color:#e6e6e6;border:1px solid rgba(255,255,255,.35);border-radius:6px;font:18px/1 ui-monospace,Menlo,Consolas,monospace;cursor:pointer;opacity:.75");
+    btn.onmouseenter = function () { btn.style.opacity = "1"; };
+    btn.onmouseleave = function () { btn.style.opacity = ".75"; };
+    d.body.appendChild(btn);
+  }
+  paint();
+})();
 </script>
 </body>
 </html>

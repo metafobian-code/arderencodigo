@@ -4,7 +4,7 @@ Poema visual animado. El texto orbita una ilustración circular: la primera estr
 
 En el espacio oscuro se abren todo el tiempo ventanas de código que escriben, letra por letra, rumias sobre el poema y la imagen.
 
-![Poema visual](assets/poema_visual.png)
+![Poema visual](poema_visual.png)
 
 ## Ver en línea
 
@@ -19,9 +19,9 @@ También puedes abrir `index.html` directamente en el navegador.
 
 ```
 index.html                 animación (HTML + SVG + JavaScript, sin dependencias)
-assets/ilustracion.jpg     ilustración recortada en círculo
-assets/poema_visual.png    versión fija del poema visual
-assets/poema_animado.mp4   versión en video (34 s)
+ilustracion.jpg     ilustración recortada en círculo
+poema_visual.png    versión fija del poema visual
+poema_animado.mp4   versión en video (34 s)
 ```
 
 ## Personalizar
