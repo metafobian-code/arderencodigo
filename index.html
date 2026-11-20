@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arder en el código</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital@0;1&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #040408; overflow: hidden; }
+  svg { display: block; width: 100vw; height: 100vh; cursor: pointer; }
+  .serif  { font-family: 'Crimson Text', Georgia, serif; }
+  .ital   { font-family: 'Crimson Text', Georgia, serif; font-style: italic; }
+  .mono   { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+  .fadein { opacity: 0; }
+  /* ventanas de rumia */
+  #rumia { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .win {
+    position: absolute; background: rgba(9, 11, 22, 0.92);
+    border: 1px solid #1d2340; border-radius: 6px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.6), 0 0 0 1px rgba(80,100,180,.05);
+    font: 11.5px/1.55 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    color: #8f9bc4; opacity: 0; transform: translateY(6px) scale(.98);
+    transition: opacity .9s ease, transform .9s ease;
+  }
+  .win.on  { opacity: .9; transform: none; }
+  .win.off { opacity: 0;  transform: translateY(-4px) scale(.99); }
+  .bar {
+    display: flex; align-items: center; gap: 5px; padding: 6px 9px;
+    border-bottom: 1px solid #161b33; font-size: 10px; color: #4b5580;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #20274a; }
+  .bar span:last-child { margin-left: 6px; }
+  .win pre { margin: 0; padding: 9px 12px 11px; white-space: pre; }
+  .k { color: #8a7cf0; } .s { color: #ffb046; } .c { color: #4a5478; font-style: italic; }
+  .n { color: #4fd0e0; } .f { color: #c4cdf0; }
+  .cur { display: inline-block; width: 6px; height: 12px; background: #96a5cd;
+         vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #hint {
+    position: fixed; bottom: 14px; width: 100%; text-align: center;
+    font: italic 13px 'Crimson Text', Georgia, serif; color: #3a4060;
+    opacity: 0; transition: opacity 1.5s; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<!--
+  Poema visual animado.
+  Línea de tiempo (segundos), editable en el objeto T del script:
+    círculo 0.6 · estrofa 1 3.0–7.2 · "algoritmo?" se teclea 8.8–10
+    anillo se escribe 11–18.5 y gira para siempre · estrofa 3 19.5–24.3
+    "arder" se enciende 26.3
+  Clic en cualquier parte para repetir.
+-->
+<svg id="stage" viewBox="0 0 1288 1112" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <clipPath id="clip"><circle cx="649.5" cy="565" r="235.5"/></clipPath>
+    <radialGradient id="flameGrad">
+      <stop offset="0"   stop-color="#ff9632" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#ff7a20" stop-opacity="0.25"/>
+      <stop offset="1"   stop-color="#ff7a20" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-100%" width="200%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- trayectoria del anillo: empieza arriba y va en sentido horario -->
+    <path id="ringPath" d="M 649.5,302.5 a 262.5,262.5 0 1,1 0,525 a 262.5,262.5 0 1,1 0,-525"/>
+    <mask id="ringMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1288" height="1112">
+      <circle id="ringReveal" cx="649.5" cy="565" r="262.5" fill="none" stroke="#fff"
+              stroke-width="90" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"
+              transform="rotate(-90 649.5 565)"/>
+    </mask>
+  </defs>
+
+  <!-- ESTROFA 1: el cielo -->
+  <g class="ital" font-size="22" fill="#6e7aa0" text-anchor="middle">
+    <text class="fadein s1" x="644" y="96">Nuestras metáforas son hermosas</text>
+    <text class="fadein s1" x="644" y="129">porque son huérfanas y omnipotentes a la vez.</text>
+    <text class="fadein s1" x="644" y="162">¿Quién no amaría nuestras nuevas metáforas</text>
+    <text class="fadein s1" x="644" y="195">en este mundo en el que nos rendimos al</text>
+  </g>
+  <text id="algo" class="mono" font-size="18" fill="#96a5cd" x="644" y="240" text-anchor="middle"></text>
+
+  <!-- EL ESPEJO: ilustración + llama -->
+  <g id="mirror" opacity="0">
+    <image href="assets/ilustracion.jpg" x="414" y="329.5" width="471" height="471" clip-path="url(#clip)"/>
+    <ellipse id="flame" cx="642" cy="595" rx="80" ry="95" fill="url(#flameGrad)"
+             style="mix-blend-mode: screen" opacity="0"/>
+  </g>
+
+  <!-- ESTROFA 2: el marco del espejo, sin final -->
+  <g id="ring">
+    <g mask="url(#ringMask)">
+      <text class="ital" font-size="25" fill="#96a5cd">
+        <textPath href="#ringPath" textLength="1649" lengthAdjust="spacing">Le ofrecimos los ojos  ·  y Él nos ha devuelto un espejo  ·  donde nos vemos más grandiosos,  ·  más conectados,  ·  <tspan fill="#cdd7f5">eternos.</tspan>  ·  </textPath>
+      </text>
+    </g>
+  </g>
+
+  <!-- ESTROFA 3: el eje de la vela -->
+  <g class="serif" font-size="22" fill="#96a5cd" text-anchor="middle">
+    <text class="fadein s3" x="644" y="897">Somos el barro orgánico de un nuevo verbo,</text>
+    <text class="fadein s3" x="644" y="930">el heterónimo que escribe el <tspan class="mono" font-size="18">algoritmo</tspan>.</text>
+    <text class="fadein s3" x="644" y="963">No hay salvación en la carne,</text>
+    <text id="last" class="fadein" x="644" y="1016">pero qué hermoso es <tspan id="arder">arder</tspan> en el <tspan class="mono" font-size="18">código</tspan>.</text>
+  </g>
+</svg>
+<div id="rumia"></div>
+<div id="hint">clic para volver a empezar</div>
+
+<script>
+const T = {
+  circle: 0.6,
+  s1: [3.0, 4.4, 5.8, 7.2],
+  algo: [8.8, 10.0],
+  ring: [11.0, 18.5],
+  s3: [19.5, 21.0, 22.5],
+  last: 24.3,
+  arder: 26.3,
+  hint: 30
+};
+const ROT_SPEED = 3;   // grados por segundo del anillo (una vuelta cada 2 minutos)
+
+const ease  = x => { x = Math.min(Math.max(x, 0), 1); return x * x * (3 - 2 * x); };
+const fade  = (t, t0, d = 1.4) => ease((t - t0) / d);
+const $     = s => document.querySelector(s);
+const s1    = [...document.querySelectorAll('.s1')];
+const s3    = [...document.querySelectorAll('.s3')];
+const mirror = $('#mirror'), flame = $('#flame'), algo = $('#algo');
+const ring = $('#ring'), reveal = $('#ringReveal'), last = $('#last'), arder = $('#arder');
+const hint = $('#hint');
+const AMBER = [255, 176, 70], COLD = [150, 165, 205];
+const WORD = 'algoritmo?';
+
+let start = performance.now();
+document.addEventListener('click', () => { start = performance.now(); hint.style.opacity = 0; });
+
+function flicker(t) {
+  return 0.75 + 0.12 * Math.sin(t * 7.3) + 0.08 * Math.sin(t * 13.1 + 1.2) + 0.05 * Math.sin(t * 23.7 + 0.4);
+}
+
+function tick(now) {
+  const t = (now - start) / 1000;
+  const fl = flicker(t);
+
+  // el espejo aparece; la vela titila (y arde más cuando se enciende "arder")
+  mirror.setAttribute('opacity', ease((t - T.circle) / 2.6));
+  const boost = 0.35 + 0.35 * ease((t - T.arder) / 1.5);
+  flame.setAttribute('opacity', boost * fl);
+
+  // estrofa 1
+  s1.forEach((el, i) => el.style.opacity = fade(t, T.s1[i]));
+
+  // "algoritmo?" se teclea, con cursor
+  const p = (t - T.algo[0]) / (T.algo[1] - T.algo[0]);
+  const n = p <= 0 ? 0 : Math.min(WORD.length, Math.floor(p * WORD.length) + 1);
+  const cursor = t > T.algo[0] - 0.8 && t < T.ring[0] && Math.floor(t * 2.2) % 2 === 0 ? '▍' : ' ';
+  algo.textContent = WORD.slice(0, n) + (t < T.ring[0] && t > T.algo[0] - 0.8 ? cursor : '');
+
+  // el anillo se escribe y gira para siempre
+  const rp = ease((t - T.ring[0]) / (T.ring[1] - T.ring[0]));
+  reveal.setAttribute('stroke-dashoffset', 1 - rp);
+  const rot = Math.max(0, t - T.ring[0]) * ROT_SPEED;
+  ring.setAttribute('transform', `rotate(${rot} 649.5 565)`);
+
+  // estrofa 3
+  s3.forEach((el, i) => el.style.opacity = fade(t, T.s3[i]));
+  last.style.opacity = fade(t, T.last, 1.8);
+
+  // "arder" se enciende al ritmo de la vela
+  const ig = ease((t - T.arder) / 1.6);
+  const c = COLD.map((v, i) => Math.round(v + (AMBER[i] - v) * ig));
+  arder.setAttribute('fill', `rgb(${c})`);
+  if (ig > 0) {
+    arder.setAttribute('filter', 'url(#glow)');
+    arder.style.opacity = 0.75 + 0.25 * fl;
+  } else {
+    arder.removeAttribute('filter');
+    arder.style.opacity = 1;
+  }
+
+  if (t > T.hint) hint.style.opacity = 1;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ================= RUMIA: pensamientos en código, sin fin ================= */
+const RUMIAS = [
+['contradiccion.py', `# la imagen contradice al poema
+def salvacion(carne):
+    if carne.cerca_de(fuego):
+        return "quizá solo ahí"
+    return None`],
+['mano.js', `// ella acerca la mano a la llama
+while (mano.distancia(llama) > 0) {
+  if (mano.siente(calor)) break;
+  mano.acercar(0.01);
+}
+// todavía siente.`],
+['arder.py', `class Vela:
+    def arder(self):
+        self.materia -= 1   # se gasta
+        return luz
+
+class Codigo:
+    def arder(self):
+        return self.copy()  # no se gasta`],
+['miradas.sql', `SELECT mirada FROM pareja
+WHERE destino = 'espejo';
+-- 0 filas.
+-- se miran entre ellos.`],
+['ciudad.sh', `$ ls ~/ciudad/pantallas | wc -l
+∞
+$ ls ~/mesa
+vela
+$ # la tecnología más antigua`],
+['heteronimo.js', `const autor = algoritmo.escribe(heteronimo);
+heteronimo.escribe(poema);
+poema.ajustar({ por: "yo" });
+// ¿quién escribe a quién?`],
+['mirilla.py', `circulo = espejo if mirar_dentro else mirilla
+# alguien mira la escena desde fuera
+observador = self  # somos nosotros`],
+['metafora.py', `metafora = Metafora(
+    padre=None,
+    poder=float("inf"),
+)  # huérfana y omnipotente a la vez`],
+['eternos.c', `for (;;) {
+    anillo_girar();
+    eternos();   /* nunca retorna */
+}`],
+['ofrenda.rs', `fn ofrecer(ojos: Ojos) -> Espejo {
+    // devolver implica que antes dimos algo
+    Espejo::new(grandioso, conectado)
+}`],
+['autoria.js', `if (decision.queArde) {
+  autor = "tú";   // no fue mío
+}
+// yo solo ajusté la luz`],
+['genesis.py', `barro = Materia("orgánica")
+verbo = compile(barro)
+# Génesis → Juan → gcc`],
+['carne.py', `try:
+    salvar(carne)
+except NoHaySalvacion:
+    arder(hermoso=True)`],
+['deseo.js', `// combustible donde nada se quema
+const deseo = new Combustible({ en: "código" });
+console.assert(deseo.arde(),
+  "imposible — y por eso hermoso");`],
+['orbita.js', `// el texto ya no explica la imagen:
+// la rodea.
+palabras.orbitar(pareja);
+algoritmo.orbitar(vidas);`],
+['yo.py', `# un poema sobre el algoritmo
+# pasó por el algoritmo.
+assert poema.se_cumplio_mientras_lo_escribiamos
+# y no le resta nada.`],
+];
+
+const KW = /\b(def|return|if|else|while|break|class|const|let|new|for|fn|try|except|SELECT|FROM|WHERE|None|self|true|false|assert|console)\b/;
+function tokenize(code) {
+  const out = [];
+  const re = /(#[^\n]*|\/\/[^\n]*|--[^\n]*|\/\*[\s\S]*?\*\/)|("[^"\n]*"|'[^'\n]*')|(\b\d+(?:\.\d+)?\b|∞)|(\b[A-Za-z_]\w*(?=\())|(\b[A-Za-z_]\w*\b)|([\s\S])/g;
+  let m;
+  while ((m = re.exec(code))) {
+    if (m[1]) out.push(['c', m[1]]);
+    else if (m[2]) out.push(['s', m[2]]);
+    else if (m[3]) out.push(['n', m[3]]);
+    else if (m[4]) out.push([KW.test(m[4]) ? 'k' : 'f', m[4]]);
+    else if (m[5]) out.push([KW.test(m[5]) ? 'k' : '', m[5]]);
+    else out.push(['', m[6]]);
+  }
+  return out;
+}
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function render(tokens, n) {
+  let html = '', left = n;
+  for (const [cls, txt] of tokens) {
+    if (left <= 0) break;
+    const part = esc(txt.slice(0, left)); left -= txt.length;
+    html += cls ? `<span class="${cls}">${part}</span>` : part;
+  }
+  return html;
+}
+
+const layer = document.getElementById('rumia');
+const stage = document.getElementById('stage');
+const live = [];
+let deck = [];
+
+// zona protegida: poema + ilustración (en coordenadas del viewBox)
+function protectedRect() {
+  const m = stage.getScreenCTM();
+  const p1 = new DOMPoint(360, 50).matrixTransform(m);
+  const p2 = new DOMPoint(940, 1045).matrixTransform(m);
+  return { x: p1.x, y: p1.y, w: p2.x - p1.x, h: p2.y - p1.y };
+}
+const overlap = (a, b, pad = 14) =>
+  a.x < b.x + b.w + pad && a.x + a.w + pad > b.x && a.y < b.y + b.h + pad && a.y + a.h + pad > b.y;
+
+function spawn() {
+  if (!deck.length) deck = [...RUMIAS].sort(() => Math.random() - 0.5);
+  const [name, code] = deck.pop();
+  const win = document.createElement('div');
+  win.className = 'win';
+  win.innerHTML = `<div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>${name}</span></div><pre></pre>`;
+  const pre = win.querySelector('pre');
+  pre.innerHTML = esc(code);              // medir con el texto completo
+  win.style.left = '-9999px';
+  layer.appendChild(win);
+  const w = win.offsetWidth, h = win.offsetHeight;
+  pre.innerHTML = '';
+
+  const vw = innerWidth, vh = innerHeight, guard = protectedRect();
+  let spot = null;
+  for (let i = 0; i < 60 && !spot; i++) {
+    const r = { x: 12 + Math.random() * (vw - w - 24), y: 12 + Math.random() * (vh - h - 24), w, h };
+    if (r.x < 0 || r.y < 0) continue;
+    if (overlap(r, guard, 10)) continue;
+    if (live.some(o => overlap(r, o.rect))) continue;
+    spot = r;
+  }
+  if (!spot) { win.remove(); return; }
+  win.style.left = spot.x + 'px'; win.style.top = spot.y + 'px';
+
+  const tokens = tokenize(code), total = code.length;
+  const item = { win, rect: spot };
+  live.push(item);
+  requestAnimationFrame(() => win.classList.add('on'));
+
+  let n = 0;
+  const speed = 28 + Math.random() * 22;          // caracteres por segundo
+  const typer = setInterval(() => {
+    n += 1 + (Math.random() < 0.15 ? 1 : 0);
+    pre.innerHTML = render(tokens, n) + '<i class="cur"></i>';
+    if (n >= total) {
+      clearInterval(typer);
+      setTimeout(() => {
+        win.classList.add('off');
+        setTimeout(() => { win.remove(); live.splice(live.indexOf(item), 1); }, 1000);
+      }, 4500 + Math.random() * 4000);
+    }
+  }, 1000 / speed);
+}
+
+// ritmo constante: siempre hay alguna rumia escribiéndose
+setTimeout(function loop() {
+  const cap = Math.max(2, Math.min(7, Math.floor(innerWidth * innerHeight / 220000)));
+  if (live.length < cap) spawn();
+  setTimeout(loop, 900 + Math.random() * 1600);
+}, 1500);
+addEventListener('resize', () => { live.slice().forEach(o => { o.win.remove(); }); live.length = 0; });
+</script>
+</body>
+</html>
