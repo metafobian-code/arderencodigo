@@ -41,12 +41,16 @@
 
   /* nota: la mano que rumia sin fin */
   #notaBtn {
-    position: fixed; left: 14px; bottom: 12px; z-index: 20;
-    background: rgba(9,11,22,.8); color: #ffb046; border: 1px solid rgba(255,176,70,.35); border-radius: 999px;
-    font: italic 15px/1 'Crimson Text', Georgia, serif; padding: 8px 14px; cursor: pointer; opacity: .8;
-    transition: opacity .4s, box-shadow .4s;
+    position: fixed; left: 16px; bottom: 16px; z-index: 20; min-height: 48px;
+    background: rgba(9,11,22,.88); color: #ffb046; border: 1.5px solid rgba(255,176,70,.7); border-radius: 999px;
+    font: italic 21px/1 'Crimson Text', Georgia, serif; padding: 12px 22px; cursor: pointer; opacity: 1;
+    box-shadow: 0 0 14px rgba(255,176,70,.25);
+    transition: box-shadow .4s, background .4s; animation: notaPulse 3.2s ease-in-out infinite;
   }
-  #notaBtn:hover, #notaBtn:focus-visible { opacity: 1; outline: none; box-shadow: 0 0 16px rgba(255,176,70,.3); }
+  #notaBtn::before { content: "\2726  "; font-style: normal; }
+  #notaBtn:hover, #notaBtn:focus-visible { outline: none; background: rgba(40,28,10,.92); box-shadow: 0 0 24px rgba(255,176,70,.5); }
+  @keyframes notaPulse { 50% { box-shadow: 0 0 24px rgba(255,176,70,.45); } }
+  @media (prefers-reduced-motion: reduce) { #notaBtn { animation: none; } }
   #nota {
     position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
     padding: 18px; background: rgba(4,4,8,.86); backdrop-filter: blur(3px);
